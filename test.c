@@ -15,7 +15,9 @@ void printIP(unsigned int ip){
 	printf("%01d\n", ip & 255);
 }
 int main(){
-	printf("hh");
-	printIP(-1);
+	int a[10];
+	char b[40];
+	char *c;
+	c = (char *)a;
 	return 0;
 }

@@ -30,9 +30,9 @@ void *thr_fn(void *arg)
 		st = static_route_get(selfrt);
 		if(st == 0)
 		{
-			printf("get st\n");
 			if(selfrt->cmdnum == 24)
 			{
+				printf("get route info from quagga_student\n");
 				while(ifni->if_index != 0) {
 					if(ifni->if_index==selfrt->ifindex)
 					{
@@ -67,8 +67,11 @@ void printIP(unsigned int ip){
 	printf("%01d\n", ip & 255);
 }
 
-int main()	
-{
+void printMac(unsigned char *mac){
+	printf("MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+int main(){
 	char skbuf[1514];
 	char data[1480];
 	int recvfd,datalen;
@@ -94,13 +97,16 @@ int main()
 	{
 		
 	//调用添加函数insert_route往路由表里添加直连路由
-		insert_route(inet_addr("192.168.6.2"), 24, "eth0", if_nametoindex("eth0"), inet_addr("192.168.3.1"));
+		insert_route(inet_addr("192.168.6.2"), 24, "eth1", if_nametoindex("eth1"), inet_addr("192.168.3.2"));
 	
 	}
 
+	// printIP(inet_addr("192.168.6.2"));
+	// printIP(ntohl(inet_addr("192.168.6.2")));
+	
 	//创建线程去接收路由信息
 	int pd;
-	// pd = pthread_create(&tid, NULL, thr_fn, NULL);
+	pd = pthread_create(&tid, NULL, thr_fn, NULL);
 
 
 	while(1)
@@ -175,9 +181,12 @@ int main()
 				
 
 					//调用arpGet获取下一跳的mac地址	
-					arpGet(srcmac, "eth1", "192.168.3.2");
-					
+					arpGet(srcmac, nexthopinfo->ifname, inet_ntoa(nexthopinfo->ipv4addr));
+					//或者出接口的mac地址
+					unsigned char out_mac_addr[6]; 
+					fromInterfaceGetMac(nexthopinfo->ifname, out_mac_addr);
 
+					printMac(out_mac_addr);
 					// send ether icmp
 					
 					// 调用ip_transmit函数   填充数据包，通过原始套接字从查表得到的出接口(比如网卡2)将数据包发送出去
@@ -188,8 +197,10 @@ int main()
 					// <3>.然后再填充接收到的ip数据包剩余数据部分，然后通过raw socket发送出去
 
 				//修改以太网包头
-					// ether_header->ether_dhost = ;
-					// ether_header->ether_shost = ;
+					memcpy(eth_header->ether_dhost, srcmac->mac, 6);
+					memcpy(eth_header->ether_shost, out_mac_addr, 6);
+					// eth_header->ether_dhost = (srcmac->mac);		//修改为下一条的mac
+					// eth_header->ether_shost = (uint8_t *)(out_mac_addr);		//修改为出接口的mac
 				// 修改ip包头
 					ip_recv_header->ip_ttl--;
 					ip_recv_header->ip_sum++;
@@ -197,7 +208,7 @@ int main()
 				// 发送
 					int sendfd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW);
 					struct sockaddr_ll sadr_ll;
-					sadr_ll.sll_ifindex = srcmac->index; 	 // index of next hop 
+					sadr_ll.sll_ifindex = srcmac->index; 	 		// index of next hop 
 					sadr_ll.sll_halen = ETH_ALEN;
 					  // mac_addr_to is the result of arp query 
 					memcpy(sadr_ll.sll_addr, srcmac->mac, ETH_ALEN);
@@ -207,10 +218,10 @@ int main()
 					if ((result = sendto(sendfd, skbuf, 1514, 0, 
 						(const struct sockaddr *)&sadr_ll, sizeof(struct sockaddr_ll))) == -1){
 						// send error 
-						printf("package sending succeeded\n");
+						printf("package sending error\n");
 					 } else {
 						// send succeed
-						printf("package sending failed\n"); 
+						printf("package sending succeed\n"); 
 					 }
 					close(sendfd);
 					
