@@ -13,7 +13,7 @@
 //接收路由信息的线程
 void *thr_fn(void *arg)
 {
-	int st = 0;
+	int st = -1;
 	struct selfroute *selfrt; 
 	selfrt = (struct selfroute*)malloc(sizeof(struct selfroute));
 	memset(selfrt, 0, sizeof(struct selfroute));
@@ -30,6 +30,7 @@ void *thr_fn(void *arg)
 		st = static_route_get(selfrt);
 		if(st == 0)
 		{
+			printf("get st\n");
 			if(selfrt->cmdnum == 24)
 			{
 				while(ifni->if_index != 0) {
@@ -54,6 +55,16 @@ void *thr_fn(void *arg)
 
 	}
 
+}
+
+void printIP(unsigned int ip){
+	int off = 24;
+	while(off){
+		int tmp = ip >> off;
+		printf("%01d.", tmp & 255);
+		off -= 8;
+	}
+	printf("%01d\n", ip & 255);
 }
 
 int main()	
@@ -83,13 +94,13 @@ int main()
 	{
 		
 	//调用添加函数insert_route往路由表里添加直连路由
-		insert_route(inet_addr("192.168.1.4"), 24, "eth0", if_nametoindex("eth0"), inet_addr("192.168.3.1"));
+		insert_route(inet_addr("192.168.6.2"), 24, "eth0", if_nametoindex("eth0"), inet_addr("192.168.3.1"));
 	
 	}
 
 	//创建线程去接收路由信息
 	int pd;
-	pd = pthread_create(&tid, NULL, thr_fn, NULL);
+	// pd = pthread_create(&tid, NULL, thr_fn, NULL);
 
 
 	while(1)
@@ -98,17 +109,19 @@ int main()
 		recvlen = recv(recvfd, skbuf, sizeof(skbuf), 0);
 		//接受ether网头
 
-
 		if(recvlen > 0)
 		{
 			struct ether_header *eth_header = (struct ether_header *)skbuf;
+
+			//ip 端序 dst = 2.6.168.192
 			struct ip *ip_recv_header = (struct ip *)(skbuf + sizeof(struct ether_header));
 					
 			//192.168.1.10是测试服务器的IP，现在测试服务器IP是192.168.1.10到192.168.1.80.
 			//使用不同的测试服务器要进行修改对应的IP。然后再编译。
 			//192.168.6.2是测试时候ping的目的地址。与静态路由相对应。
- 			if(ip_recv_header->ip_src.s_addr == inet_addr("192.168.1.10") && ip_recv_header->ip_dst.s_addr == inet_addr("192.168.6.2") )
+ 			if(ip_recv_header->ip_src.s_addr == inet_addr("192.168.1.1") && ip_recv_header->ip_dst.s_addr == inet_addr("192.168.6.2") )
 			{
+				printf("receive package from server\n");
 				//分析打印ip数据包的源和目的ip地址
 			//	analyseIP(ip_recvpkt);
 
@@ -119,6 +132,8 @@ int main()
 					data[s]=skbuf[s+34];
 				}
 
+
+
 				 
 					// 校验计算模块
 					// struct _iphdr *iphead;
@@ -128,9 +143,8 @@ int main()
 					
 
 					//调用校验函数check_sum，成功返回0
-					int c = check_sum((unsigned short *)ip_recv_header, ip_recv_header->ip_len * 4);
+					int c = check_sum((unsigned short *)ip_recv_header, ip_recv_header->ip_hl * 4);
 
-				
 					if(c == 0){
 							printf("checksum is ok!!\n");
 					}else{
@@ -139,23 +153,29 @@ int main()
 					}
 
 
+
+
 					//查找路由表，获取下一跳ip地址和出接口模块
 					struct nextaddr *nexthopinfo;
 					nexthopinfo = (struct nextaddr *)malloc(sizeof(struct nextaddr));
 					memset(nexthopinfo, 0, sizeof(struct nextaddr));
 					
 					//调用查找路由函数lookup_route，获取下一跳ip地址和出接口
-					lookup_route(ip_recv_header->ip_dst, nexthopinfo);
-					
+					if(lookup_route(ip_recv_header->ip_dst, nexthopinfo) == 0){
+						printf("found route entry\n");
+					}else{
+						printf("route entry not found\n");
+					}
 
-					
+
 					//arp find
 					struct arpmac *srcmac;
 					srcmac = (struct arpmac*)malloc(sizeof(struct arpmac));
 					memset(srcmac, 0, sizeof(struct arpmac));
-					
+				
+
 					//调用arpGet获取下一跳的mac地址	
-					arpGet(srcmac, nexthopinfo->ifname, "192.168.3.1");
+					arpGet(srcmac, "eth1", "192.168.3.2");
 					
 
 					// send ether icmp

@@ -19,11 +19,12 @@ int insert_route(unsigned int ip4prefix, unsigned int prefixlen, char *ifname, u
 		new_route->next = route_table->next;
 	}
 	route_table->next = new_route;
-
+	return 0;
 }
 
 // 最长前缀匹配
 int lookup_route(struct in_addr dstaddr, struct nextaddr *nexthopinfo){
+
 	struct route *p_route = route_table->next;
 	struct route *match_route = NULL;
 	int max_prefix_len = 0;
@@ -37,10 +38,11 @@ int lookup_route(struct in_addr dstaddr, struct nextaddr *nexthopinfo){
 		}
 		p_route = p_route->next;
 	}
+
 	if(max_prefix_len > 0 && match_route != NULL){
-			nexthopinfo->ifname = p_route->nexthop->ifname;
-			nexthopinfo->ipv4addr = p_route->nexthop->nexthopaddr;
-			nexthopinfo->prefixl = p_route->prefixlen;
+			nexthopinfo->ifname = match_route->nexthop->ifname;
+			nexthopinfo->ipv4addr = match_route->nexthop->nexthopaddr;
+			nexthopinfo->prefixl = match_route->prefixlen;
 			return 0;	
 	}
 	return -1;

@@ -19,7 +19,7 @@ unsigned short count_check_sum(unsigned short *iphd, int len)
     }
     if (len) 
     {
-        cksum += *(char *)iphd;
+        cksum += *(unsigned char *)iphd;
     }
 	/*对每个16bit进行二进制反码求和*/
     cksum = (cksum >> 16) + (cksum & 0xffff);	//高16位低16位相加

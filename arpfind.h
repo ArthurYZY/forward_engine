@@ -20,5 +20,5 @@ struct arpmac
 
 
 int arpGet(struct arpmac *srcmac,char *ifname, char *ipStr);
-
+int fromInterfaceGetMac(char *ifname, char *mac_a);
 #endif 

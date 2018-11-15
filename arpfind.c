@@ -34,8 +34,22 @@ int arpGet(struct arpmac *srcmac, char *ifname, char *ipStr)
 
 	close(arp_fd);
     return 0;  
-}  
-                                                                                                        
+}
+
+int fromInterfaceGetMac(char *ifname, char *mac_a){
+	struct ifreq ifr;
+	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	strncpy(ifr.ifr_name, ifname, IF_NAMESIZE);
+	if (ioctl(sockfd, SIOCGIFHWADDR, &ifr) == 0) { 
+		memcpy(mac_a, ifr.ifr_hwaddr.sa_data, 6); 
+	} else {
+		printf("from interface get mac address error\n");
+	}
+
+	close(sockfd);  
+	                                                                                                        
+	
+}
                                                                                                           
                                                                                                             
                                                                                                               
