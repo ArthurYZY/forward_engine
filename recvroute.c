@@ -17,8 +17,8 @@ int static_route_get(struct selfroute *selfrt)
 
 	int ret = -1;
 	while (1) { 
-		printf("***\n");
 		int conn_fd = accept(sock_fd, (struct sockaddr *)NULL, NULL);
+		printf("***\n");
 		ret = recv(conn_fd, &selfrt, sizeof(struct selfroute), 0); 
 		printf("%d\n", ret);
 		if(ret >= 0){
