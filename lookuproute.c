@@ -36,17 +36,19 @@ int lookup_route(struct in_addr dstaddr, struct nextaddr *nexthopinfo){
 		unsigned int p_addr_little = ntohl(p_route->ip4prefix.s_addr);
 
 		int match = 1;
-		int i;
-		for(i = 0; i < p_route->prefixlen; i++){
-			int offset = 31 - i;
-			int dst_bit = (dst_addr_little >> offset) & 1;
-			int p_bit = (p_addr_little >> offset) & 1;
+		// int i;
+		// for(i = 0; i < p_route->prefixlen; i++){
+		// 	int offset = 31 - i;
+		// 	int dst_bit = (dst_addr_little >> offset) & 1;
+		// 	int p_bit = (p_addr_little >> offset) & 1;
 
-			if(p_bit != dst_bit){
-				match = 0;
-				break;
-			}
-		}
+		// 	if(p_bit != dst_bit){
+		// 		match = 0;
+		// 		break;
+		// 	}
+		// }
+		int offset = 32 - p_route->prefixlen;
+		match = (dst_addr_little >> offset == p_addr_little >> offset)? 1 : 0;
 
 		if(match){
 			if(p_route->prefixlen > max_prefix_len){

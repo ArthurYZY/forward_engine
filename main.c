@@ -43,7 +43,7 @@ void* thr_fn(void* arg)
     bzero(&listenaddr, sizeof(struct sockaddr_in));
     listenaddr.sin_family = AF_INET;
     listenaddr.sin_addr.s_addr = INADDR_ANY;
-    listenaddr.sin_port = htons(7788);
+    listenaddr.sin_port = htons(800);
 
     if (bind(listenfd, &listenaddr, sizeof(struct sockaddr)) < 0) {
         printf("route setsockopt err: %s\n", strerror(errno));
@@ -75,6 +75,7 @@ void* thr_fn(void* arg)
                 }
             } else if (selfrt->cmdnum == 25){
 				//从路由表里删除路由
+				delete_route(selfrt->prefix, selfrt->prefixlen);
 			}
 		}
 
